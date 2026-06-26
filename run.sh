@@ -76,6 +76,11 @@ start_frontend() {
     exit 1
   fi
 
+  if [[ ! -d "$FRONTEND_DIR/node_modules" ]]; then
+    echo "Installing frontend dependencies..."
+    (cd "$FRONTEND_DIR" && npm install)
+  fi
+
   echo "Starting frontend on http://localhost:$FRONTEND_PORT ..."
   (
     cd "$FRONTEND_DIR"
