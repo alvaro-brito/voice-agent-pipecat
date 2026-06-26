@@ -24,20 +24,19 @@ from app.helpers.config import (
     requested_stacks,
     stack_catalog,
 )
-from app.service.runtime_services import get_agno_service, preload_local_services
+from app.service.runtime_services import ensure_local_models_downloaded, get_agno_service, preload_local_services
 from app.service.voice_pipeline import process_turn, send_event
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     if "local" in requested_stacks():
-        if "local" in available_stacks():
-            print("[startup] Local stack available — preloading models...", flush=True)
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, preload_local_services)
-            print("[startup] All local models ready.", flush=True)
-        else:
-            print("[startup] Local stack requested but models not found — skipping preload.", flush=True)
+        loop = asyncio.get_running_loop()
+        print("[startup] Local stack requested — checking models...", flush=True)
+        await loop.run_in_executor(None, ensure_local_models_downloaded)
+        print("[startup] Preloading local models...", flush=True)
+        await loop.run_in_executor(None, preload_local_services)
+        print("[startup] All local models ready.", flush=True)
     yield
 
 

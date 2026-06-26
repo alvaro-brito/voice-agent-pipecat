@@ -74,12 +74,27 @@ def get_agno_service(stack: str) -> AgnoChatService:
             agno_openai_service = AgnoChatService(DATA_DIR / "agno.db", stack="openai")
         return agno_openai_service
 
-    ensure_stack_available("local")
     if agno_local_service is None:
         print("[startup] Loading Agno agent...", flush=True)
         agno_local_service = AgnoChatService(DATA_DIR / "agno.db", stack="local")
         print("[startup] Agno loaded.", flush=True)
     return agno_local_service
+
+
+def ensure_local_models_downloaded() -> None:
+    """Download Supertonic and Whisper models if not already present locally."""
+    from supertonic.loader import download_model, has_all_onnx_modules
+
+    if not has_all_onnx_modules(MODEL_DIR):
+        print(f"[startup] Supertonic model not found at {MODEL_DIR} — downloading from HuggingFace...", flush=True)
+        MODEL_DIR.mkdir(parents=True, exist_ok=True)
+        download_model(MODEL_DIR)
+        print("[startup] Supertonic download complete.", flush=True)
+    else:
+        print(f"[startup] Supertonic model already present at {MODEL_DIR}.", flush=True)
+
+    import huggingface_hub.constants as _hf
+    print(f"[startup] Whisper '{WHISPER_MODEL}' will auto-download if needed (cache: {_hf.HF_HUB_CACHE}).", flush=True)
 
 
 def preload_local_services() -> None:

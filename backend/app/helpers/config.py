@@ -12,7 +12,18 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BASE_DIR / ".env", override=True)
 
 DATA_DIR = BASE_DIR / "data"
-MODEL_DIR = BASE_DIR.parent.parent / "tts-test" / "models" / "supertonic-3"
+
+def _resolve_model_dir() -> Path:
+    env_dir = os.getenv("TTS_MODEL_DIR")
+    if env_dir:
+        return Path(env_dir)
+    try:
+        from supertonic.loader import get_cache_dir
+        return get_cache_dir()
+    except Exception:
+        return Path.home() / ".cache" / "supertonic3"
+
+MODEL_DIR = _resolve_model_dir()
 WHISPER_MODEL = "large-v3-turbo"
 TTS_VOICE = "M1"
 DEFAULT_AUDIO_SUFFIX = ".webm"
@@ -88,10 +99,18 @@ def requested_stacks() -> list[StackName]:
     return ["local", "openai"]
 
 
+def _local_models_ready() -> bool:
+    try:
+        from supertonic.loader import has_all_onnx_modules
+        return has_all_onnx_modules(MODEL_DIR)
+    except Exception:
+        return MODEL_DIR.exists()
+
+
 def stack_catalog() -> dict[StackName, dict[str, object]]:
     local_requested = "local" in requested_stacks()
     openai_requested = "openai" in requested_stacks()
-    local_available = local_requested and MODEL_DIR.exists()
+    local_available = local_requested and _local_models_ready()
     openai_available = openai_requested and bool(os.getenv("OPENAI_API_KEY"))
 
     return {
